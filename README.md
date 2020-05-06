@@ -11,6 +11,7 @@ node xxx.ts 运行
 ：类型  如，:string
 ## 接口
 概念：使用接口来描述一个对象的属性
+## 属性接口
 ### 接口中可定义 确定属性、可选属性、任意属性、只读属性
 1、确定属性
 interface UserInfo {
@@ -72,3 +73,30 @@ const myInfo: UserInfo = {
   test3: 123  
 };
 只读属性也是确定属性，在对象变量定义的时候必须有值，此后不能修改  
+## 函数接口
+对方法传入的参数以及返回值进行约束  
+interface Func {  
+  (param1: string, param2: number): boolean;  
+}  
+let myFunc: Func = function(param1, param2){  
+  return typeof param1 === "string" && typeof param2 === "number";  
+};  
+myFunc("22222", 1111);  
+## 索引接口（不常用） 
+可对数组或对象进行约束  
+interface ArrIndex {  
+    [index:number]: string  
+}  
+interface Obj {  
+　　[index:string]:string  
+}  
+let myArr: ArrIndex = ['first','second']  
+let myObj:Obj = {  
+　　name: 'kkkk'  
+}  
+## 类接口  
+对类进行约束，和抽象类有点相似  
+ 类实现接口implements  
+接口继承接口  
+接口继承类  
+ 
