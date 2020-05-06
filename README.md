@@ -100,3 +100,32 @@ let myObj:Obj = {
 接口继承接口  
 接口继承类  
  
+# 基础类型
+## 布尔值  
+let isDone: boolean = false
+## 数字  
+let decLiteral: number = 20  
+## 字符串  
+let name: string = 'bob'  
+## 数组  
+let list: number[] = [1, 2, 3] number还能规定数组里的内容类型  
+## 元组 Tuple  
+概念： 元组类型允许表示一个已知元素数量和类型的数组，各元素的类型不必相同。  
+let x: [string, number]  
+## 枚举  
+enum 类型是对 JavaScript 标准数据类型的一个补充  
+## any  
+在编程阶段还不清楚类型的变量指定一个类型  
+## void  
+void 类型像是与 any 类型相反，它表示没有任何类型。  
+## null 和 undefined
+## never  
+never 类型表示的是那些永不存在的值的类型， never 类型是那些总是会抛出异常或根本就不会有返回值的函数表达式或箭头函数表达式的返回值类型  
+## object  
+## 类型断言 
+一是“尖括号”语法：  
+let someValue: any = 'this is a string'  
+let strLength: number = (<string>someValue).length  
+另一个为 as 语法： 
+let someValue: any = 'this is a string'  
+let strLength: number = (someValue as string).length  
