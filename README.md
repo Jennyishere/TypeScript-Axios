@@ -139,6 +139,37 @@ npm install
 
 ### 后台
 使用express框架写一个简单的service，定义后端的路由
+```js
+const express = require('express')
+const bodyParser = require('body-parser')
+const webpack = require('webpack')
+const webpackDevMiddleware = require('webpack-dev-middleware')
+const webpackHotMiddleware = require('webpack-hot-middleware')
+const WebpackConfig = require('./webpack.config')
+
+const app = express()
+const compiler = webpack(WebpackConfig)
+
+app.use(webpackDevMiddleware(compiler, {
+  publicPath: '/__build__/',
+  stats: {
+    colors: true,
+    chunks: false
+  }
+}))
+
+app.use(webpackHotMiddleware(compiler))
+
+app.use(express.static(__dirname))
+
+app.use(bodyParser.json())
+app.use(bodyParser.urlencoded({ extended: true }))
+
+const port = process.env.PORT || 8080
+module.exports = app.listen(port, () => {
+  console.log(`Server listening on http://localhost:${port}, Ctrl+C to stop`)
+})
+```
 
 ### 目标 可以使用axios发起请求
 axios({
@@ -149,6 +180,7 @@ axios({
     b: 2
   }
 })
+## 思路：function axios(config)==>xhr(config)==>confi:AxiosRequestConfig
 
 ### 创建入口文件
 src 目录下，先创建一个 index.ts 文件，作为整个库的入口文件，然后我们先定义一个 axios 方法，并把它导出，如下：
@@ -166,7 +198,6 @@ export default axios
 接下来我们来定义 AxiosRequestConfig 接口类型：
 
  ```js
- 
  export interface AxiosRequestConfig {
   url: string
   method?: string
@@ -174,7 +205,6 @@ export default axios
   params?: any
 }  
 //为了让 method 只能传入合法的字符串，我们定义一种字符串字面量类型 Method：
-
 export type Method = 'get' | 'GET'
   | 'delete' | 'Delete'
   | 'head' | 'HEAD'
@@ -217,8 +247,7 @@ export default function xhr(config: AxiosRequestConfig): void {
 编写好了 xhr 模块，我们就需要在 index.ts 中去引入这个模块，如下：
 
 ``` js
-
- import { AxiosRequestConfig } from './types'
+import { AxiosRequestConfig } from './types'
 import xhr from './xhr'
 
 function axios(config: AxiosRequestConfig): void {
@@ -227,3 +256,94 @@ function axios(config: AxiosRequestConfig): void {
 
 export default axios 
 ```
+
+配置package.json
+```js
+"dev": "node examples/server.js"
+```
+
+## 处理请求 url 参数
+### 需求分析
+最终请求的 url 是 /base/get?a=1&b=2,这样服务端就可以通过请求的 url 解析到我们传来的参数数据了。实际上就是把 params 对象的 key 和 value 拼接到 url 上
+
+```js
+//参数值为数组
+axios({
+  method: 'get',
+  url: '/base/get',
+  params: {
+    foo: ['bar', 'baz']
+  }
+})
+//最终请求的 url 是 /base/get?foo[]=bar&foo[]=baz'。
+
+//参数值为对象
+axios({
+  method: 'get',
+  url: '/base/get',
+  params: {
+    foo: {
+      bar: 'baz'
+    }
+  }
+})
+//最终请求的 url 是 /base/get?foo=%7B%22bar%22:%22baz%22%7D，foo 后面拼接的是 {"bar":"baz"} encode 后的结果。
+
+//参数值为 Date 类型
+const date = new Date()
+
+axios({
+  method: 'get',
+  url: '/base/get',
+  params: {
+    date
+  }
+})
+//最终请求的 url 是 /base/get?date=2019-04-01T05:55:39.030Z，date 后面拼接的是 date.toISOString() 的结果。
+
+//特殊字符支持
+//对于字符 @、:、$、,、、[、]，我们是允许出现在 url 中的，不希望被 encode。
+
+axios({
+  method: 'get',
+  url: '/base/get',
+  params: {
+    foo: '@:$, '
+  }
+})
+//最终请求的 url 是 /base/get?foo=@:$+，注意，我们会把空格 转换成 +。
+
+//空值忽略
+//对于值为 null 或者 undefined 的属性，我们是不会添加到 url 参数中的。
+
+axios({
+  method: 'get',
+  url: '/base/get',
+  params: {
+    foo: 'bar',
+    baz: null
+  }
+})
+//最终请求的 url 是 /base/get?foo=bar。
+
+//丢弃 url 中的哈希标记
+axios({
+  method: 'get',
+  url: '/base/get#hash',
+  params: {
+    foo: 'bar'
+  }
+})
+//最终请求的 url 是 /base/get?foo=bar
+
+//保留 url 中已存在的参数
+axios({
+  method: 'get',
+  url: '/base/get?foo=bar',
+  params: {
+    bar: 'baz'
+  }
+})
+//最终请求的 url 是 /base/get?foo=bar&bar=baz
+```
+
