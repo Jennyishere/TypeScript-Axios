@@ -158,7 +158,7 @@ src 目录下，先创建一个 index.ts 文件，作为整个库的入口文件
 function axios(config) {
 }
 export default axios  
-
+```
 
 ### 给 config 参数定义一种接口类型，定义 AxiosRequestConfig 接口类型
 创建一个 types 目录，在下面创建一个 index.ts 文件，作为我们项目中公用的类型定义文件。
@@ -182,7 +182,7 @@ export type Method = 'get' | 'GET'
   | 'post' | 'POST'
   | 'put' | 'PUT'
   | 'patch' | 'PATCH'
-  
+ ``` 
 ####  然后回到 index.ts，我们引入 AxiosRequestConfig 类型，作为 config 的参数类型，如下：
 
 ```js
@@ -193,7 +193,7 @@ function axios(config: AxiosRequestConfig) {
 }
 
 export default axios
-
+```
 #### 在 src 目录下创建一个 xhr.ts 文件，我们导出一个 xhr 方法，它接受一个 config 参数，类型也是 AxiosRequestConfig 类型  
 import { AxiosRequestConfig } from './types'
 
@@ -212,7 +212,7 @@ export default function xhr(config: AxiosRequestConfig): void {
 
   request.send(data)
 } 
-
+```
 ### 引入 xhr 模块
 编写好了 xhr 模块，我们就需要在 index.ts 中去引入这个模块，如下：
 
@@ -226,3 +226,4 @@ function axios(config: AxiosRequestConfig): void {
 }
 
 export default axios 
+```
