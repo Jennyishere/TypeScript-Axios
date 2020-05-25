@@ -153,9 +153,11 @@ axios({
 ### 创建入口文件
 src 目录下，先创建一个 index.ts 文件，作为整个库的入口文件，然后我们先定义一个 axios 方法，并把它导出，如下：
 
+```js
+
 function axios(config) {
 }
-export default axios
+export default axios  
 
 
 ### 给 config 参数定义一种接口类型，定义 AxiosRequestConfig 接口类型
@@ -163,13 +165,15 @@ export default axios
 
 接下来我们来定义 AxiosRequestConfig 接口类型：
 
-export interface AxiosRequestConfig {
+ ```js
+ 
+ export interface AxiosRequestConfig {
   url: string
   method?: string
   data?: any
   params?: any
 }  
-为了让 method 只能传入合法的字符串，我们定义一种字符串字面量类型 Method：
+//为了让 method 只能传入合法的字符串，我们定义一种字符串字面量类型 Method：
 
 export type Method = 'get' | 'GET'
   | 'delete' | 'Delete'
@@ -180,6 +184,8 @@ export type Method = 'get' | 'GET'
   | 'patch' | 'PATCH'
   
 ####  然后回到 index.ts，我们引入 AxiosRequestConfig 类型，作为 config 的参数类型，如下：
+
+```js
 
 import { AxiosRequestConfig } from './types'
 
@@ -195,6 +201,8 @@ export default function xhr(config: AxiosRequestConfig) {
 }
 接下来，我们来实现这个函数体逻辑，如下：
 
+```js
+
 export default function xhr(config: AxiosRequestConfig): void {
   const { data = null, url, method = 'get' } = config
 
@@ -203,7 +211,7 @@ export default function xhr(config: AxiosRequestConfig): void {
   request.open(method.toUpperCase(), url, true)
 
   request.send(data)
-}  
+} 
 
 ### 引入 xhr 模块
 编写好了 xhr 模块，我们就需要在 index.ts 中去引入这个模块，如下：
