@@ -522,3 +522,84 @@ export function processHeaders (headers: any, data: any): any {
   return headers
 }
 ```
+## 获取响应数据
+### 需求分析
+```js
+axios({
+  method: 'post',
+  url: '/base/post',
+  data: {
+    a: 1,
+    b: 2
+  }
+}).then((res) => {
+  console.log(res)
+})
+```
+
+### 定义一个 AxiosResponse 接口类型，如下：
+```js
+export interface AxiosResponse {
+  data: any
+  status: number
+  statusText: string
+  headers: any
+  config: AxiosRequestConfig
+  request: any
+  //可以指定它的响应的数据类型的，通过设置 XMLHttpRequest 对象的 responseType 属性，于是我们可以给 AxiosRequestConfig 类型添加一个可选属性
+   responseType?: XMLHttpRequestResponseType
+}
+```
+### 定义一个 AxiosPromise 接口，它继承于 Promise<AxiosResponse> 这个泛型接口：
+
+export interface AxiosPromise extends Promise<AxiosResponse> {
+}
+
+### 把 xhr.ts修改为：
+```js
+export default function xhr(config: AxiosRequestConfig): AxiosPromise {  //返回值为一个Promise
+  return new Promise((resolve) => {
+    const { data = null, url, method = 'get', headers, responseType } = config
+
+    const request = new XMLHttpRequest()
+
+    if (responseType) {
+      request.responseType = responseType
+    }
+
+    request.open(method.toUpperCase(), url, true)
+
+    request.onreadystatechange = function handleLoad() {
+      if (request.readyState !== 4) {
+        return
+      }
+
+      const responseHeaders = request.getAllResponseHeaders()
+      const responseData = responseType && responseType !== 'text' ? request.response : request.responseText
+      const response: AxiosResponse = {
+        data: responseData,
+        status: request.status,
+        statusText: request.statusText,
+        headers: responseHeaders,
+        config,
+        request
+      }
+      resolve(response)
+    }
+
+    Object.keys(headers).forEach((name) => {
+      if (data === null && name.toLowerCase() === 'content-type') {
+        delete headers[name]
+      } else {
+        request.setRequestHeader(name, headers[name])
+      }
+    })
+
+    request.send(data)
+  })
+}
+```
+axios 函数也要修改 返回AxiosPromise
+
+## 处理响应 header
+### 需求分析
