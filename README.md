@@ -208,11 +208,13 @@ export default function xhr(config: AxiosRequestConfig): void {
 ### 引入 xhr 模块
 编写好了 xhr 模块，我们就需要在 index.ts 中去引入这个模块，如下：
 
-import { AxiosRequestConfig } from './types'
+``` js
+
+ import { AxiosRequestConfig } from './types'
 import xhr from './xhr'
 
 function axios(config: AxiosRequestConfig): void {
   xhr(config)
 }
 
-export default axios
+export default axios 
