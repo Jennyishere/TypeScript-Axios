@@ -180,7 +180,7 @@ axios({
     b: 2
   }
 })
-## 思路：function axios(config)==>xhr(config)==>confi:AxiosRequestConfig
+## 思路：function axios(config)==>xhr(config)==>confi:AxiosRequestConfig==>processConfig(config):url
 
 ### 创建入口文件
 src 目录下，先创建一个 index.ts 文件，作为整个库的入口文件，然后我们先定义一个 axios 方法，并把它导出，如下：
@@ -251,9 +251,16 @@ import { AxiosRequestConfig } from './types'
 import xhr from './xhr'
 
 function axios(config: AxiosRequestConfig): void {
+processConfig(config)
   xhr(config)
 }
-
+function processConfig (config: AxiosRequestConfig): void {
+  config.url = transformUrl(config)
+}
+function transformUrl (config: AxiosRequestConfig): string {
+  const { url, params } = config
+  return bulidURL(url, params)
+}
 export default axios 
 ```
 
@@ -347,3 +354,72 @@ axios({
 //最终请求的 url 是 /base/get?foo=bar&bar=baz
 ```
 
+### helpers/util.ts： 用于判断传入的参数类型
+```js
+const toString = Object.prototype.toString
+
+export function isDate (val: any): val is Date {
+  return toString.call(val) === '[object Date]'
+}
+
+export function isObject (val: any): val is Object {
+  return val !== null && typeof val === 'object'
+}
+```
+### helpers/url.ts： 处理url
+```js
+import { isDate, isObject } from './util'
+
+function encode (val: string): string {
+  return encodeURIComponent(val)
+    .replace(/%40/g, '@')
+    .replace(/%3A/gi, ':')
+    .replace(/%24/g, '$')
+    .replace(/%2C/gi, ',')
+    .replace(/%20/g, '+')
+    .replace(/%5B/gi, '[')
+    .replace(/%5D/gi, ']')
+}
+
+export function bulidURL (url: string, params?: any) {
+  if (!params) {  //如果传入参数为空 不用处理
+    return url
+  }
+  const parts: string[] = []   //定义一个字符串数组
+
+  Object.keys(params).forEach((key) => {  //遍历参数对象
+    let val = params[key]
+    if (val === null || typeof val === 'undefined') {    //过滤掉空的
+      return
+    }
+    let values: string[]
+    if (Array.isArray(val)) {
+      values = val
+      key += '[]'
+    } else {
+      values = [val]
+    }
+    values.forEach((val) => {
+      if (isDate(val)) {
+        val = val.toISOString()
+      } else if (isObject(val)) {
+        val = JSON.stringify(val)
+      }
+      parts.push(`${encode(key)}=${encode(val)}`)
+    })
+  })
+
+  let serializedParams = parts.join('&')
+
+  if (serializedParams) {
+    const markIndex = url.indexOf('#')
+    if (markIndex !== -1) {
+      url = url.slice(0, markIndex)
+    }
+
+    url += (url.indexOf('?') === -1 ? '?' : '&') + serializedParams   //拼接起来
+  }
+
+  return url
+}
+```
