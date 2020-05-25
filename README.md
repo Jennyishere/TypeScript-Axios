@@ -180,7 +180,7 @@ axios({
     b: 2
   }
 })
-## 思路：function axios(config)==>xhr(config)==>confi:AxiosRequestConfig==>processConfig(config):url
+## 思路：function axios(config)==>xhr(config)==>confi:AxiosRequestConfig==>processConfig(config):url，data
 
 ### 创建入口文件
 src 目录下，先创建一个 index.ts 文件，作为整个库的入口文件，然后我们先定义一个 axios 方法，并把它导出，如下：
@@ -199,10 +199,11 @@ export default axios
 
  ```js
  export interface AxiosRequestConfig {
-  url: string
-  method?: string
+   url: string
+  method?: Method
   data?: any
   params?: any
+  headers?: any
 }  
 //为了让 method 只能传入合法的字符串，我们定义一种字符串字面量类型 Method：
 export type Method = 'get' | 'GET'
@@ -234,11 +235,19 @@ export default function xhr(config: AxiosRequestConfig) {
 ```js
 
 export default function xhr(config: AxiosRequestConfig): void {
-  const { data = null, url, method = 'get' } = config
-
+ const { data = null, url, method = 'get', headers } = config
+ 
   const request = new XMLHttpRequest()
 
   request.open(method.toUpperCase(), url, true)
+
+  Object.keys(headers).forEach((name) => {
+    if (data === null && name.toLowerCase() === 'content-type') {  //当 data 为空的时候，请求 header 配置 Content-Type 是没有意义的
+      delete headers[name]
+    } else {
+      request.setRequestHeader(name, headers[name])
+    }
+  })
 
   request.send(data)
 } 
@@ -256,10 +265,22 @@ processConfig(config)
 }
 function processConfig (config: AxiosRequestConfig): void {
   config.url = transformUrl(config)
+   config.headers = transformHeaders(config)
+  config.data = transformRequestData(config)
 }
+//处理url
 function transformUrl (config: AxiosRequestConfig): string {
   const { url, params } = config
   return bulidURL(url, params)
+}
+//处理data
+function transformRequestData (config: AxiosRequestConfig): any {
+  return transformRequest(config.data)
+}
+//处理header
+function transformHeaders (config: AxiosRequestConfig) {
+  const { headers = {}, data } = config
+  return processHeaders(headers, data)
 }
 export default axios 
 ```
@@ -421,5 +442,83 @@ export function bulidURL (url: string, params?: any) {
   }
 
   return url
+}
+```
+## 处理请求 body 数据
+### 需求分析
+```js
+axios({
+  method: 'post',
+  url: '/base/post',
+  data: { 
+    a: 1,
+    b: 2 
+  }
+})
+```
+这个时候 data是不能直接传给 send 函数的，我们需要把它转换成 JSON 字符串,对request 中的 data 做一层转换
+### helpers/data.ts：
+```js
+import { isPlainObject } from './util'
+
+export function transformRequest (data: any): any {
+  if (isPlainObject(data)) {
+    return JSON.stringify(data)
+  }
+  return data
+}
+```
+### helpers/util.js：
+```js
+export function isPlainObject (val: any): val is Object {
+  return toString.call(val) === '[object Object]'
+}
+```
+
+## 处理请求 header
+### 需求分析
+做了请求数据的处理，把 data 转换成了 JSON 字符串，但是数据发送到服务端的时候，服务端并不能正常解析我们发送的数据，因为并没有给请求 header 设置正确的 Content-Type
+
+我们要支持发送请求的时候，可以支持配置 headers 属性，如下：
+```js
+axios({
+  method: 'post',
+  url: '/base/post',
+  headers: {
+    'content-type': 'application/json;charset=utf-8'
+  },
+  data: {
+    a: 1,
+    b: 2
+  }
+})
+```
+并且在headers 如果没有配置 Content-Type 属性，需要自动设置请求 默认header 的 Content-Type 字段为：application/json;charset=utf-8
+
+### helpers/headers.ts：
+```js
+import { isPlainObject } from './util'
+
+function normalizeHeaderName (headers: any, normalizedName: string): void {
+  if (!headers) {
+    return
+  }
+  Object.keys(headers).forEach(name => {
+    if (name !== normalizedName && name.toUpperCase() === normalizedName.toUpperCase()) {
+      headers[normalizedName] = headers[name]
+      delete headers[name]
+    }
+  })
+}
+
+export function processHeaders (headers: any, data: any): any {
+  normalizeHeaderName(headers, 'Content-Type')
+  
+  if (isPlainObject(data)) {
+    if (headers && !headers['Content-Type']) {
+      headers['Content-Type'] = 'application/json;charset=utf-8'
+    }
+  }
+  return headers
 }
 ```
